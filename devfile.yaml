@@ -6,6 +6,8 @@ metadata:
   displayName: Devspaces Jupyter Notebook
   description: "OpenShift Dev Spaces Jupyter Notebook"
   icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/angular.svg
+  attributes:
+    editorFree: true
   tags:
     - DataScience
     - Python
@@ -13,7 +15,7 @@ metadata:
     - MachineLearning
   projectType: Python
   language: Python
-  version: 1.2.1
+  version: 1.2.2
 components:
   - name: runtime
     container:
