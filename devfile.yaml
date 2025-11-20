@@ -1,0 +1,83 @@
+schemaVersion: 2.3.0
+
+attributes:
+
+    editorFree: true
+
+metadata:
+
+  name: devspaces-jupyter
+
+  displayName: Devspaces Jupyter Notebook
+
+  description: "OpenShift Dev Spaces Jupyter Notebook"
+
+  icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/angular.svg
+
+  tags:
+
+    - DataScience
+
+    - Python
+
+    - Jupyter
+
+    - MachineLearning
+
+  projectType: Python
+
+  language: Python
+
+  version: 1.0.0
+
+components:
+
+  - name: runtime
+
+    container:
+
+      image: ourregistryURL/jupyter-notebook-docker:prod
+
+      command: ["start-notebook.sh"]
+
+      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
+
+      memoryLimit: '32Gi'
+
+      memoryRequest: '32Gi'
+
+      cpuLimit: '2'
+
+      cpuRequest: '2'
+
+      endpoints:
+
+        - name: frontend
+
+          targetPort: 8888
+
+      env:
+
+        - name: NB_USER
+
+          value: "jovyan"
+
+        - name: NB_UID
+
+          value: "1003660000"
+
+        - name: NB_GID
+
+          value: "1003660000"
+
+    attributes:
+
+      container-overrides:
+
+        securityContext:
+
+          runAsUser: 1003660000
+
+          runAsGroup: 1003660000
+
+          fsGroup: 1003660000
