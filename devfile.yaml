@@ -20,23 +20,6 @@ components:
       image: quay.io/jupyter/datascience-notebook:latest
       command: ["start-notebook.sh"]
       args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
-      memoryLimit: '32Gi'
-      memoryRequest: '32Gi'
-      cpuLimit: '2'
-      cpuRequest: '2'
       endpoints:
         - name: frontend
           targetPort: 8888
-      env:
-        - name: NB_USER
-          value: "jovyan"
-        - name: NB_UID
-          value: "1003660000"
-        - name: NB_GID
-          value: "1003660000"
-    attributes:
-      container-overrides:
-        securityContext:
-          runAsUser: 1003660000
-          runAsGroup: 1003660000
-          fsGroup: 1003660000
