@@ -13,7 +13,7 @@ metadata:
     - MachineLearning
   projectType: Python
   language: Python
-  version: 1.2.0
+  version: 1.2.1
 components:
   - name: runtime
     container:
@@ -26,7 +26,10 @@ components:
         - name: frontend
           targetPort: 8888
           attributes:
+            type: main
             public: true
+            cookiesAuthEnabled: true
+            urlRewriteSupported: true
       env:
         - name: JUPYTER_RUNTIME_DIR
           value: /tmp/jupyter/runtime
