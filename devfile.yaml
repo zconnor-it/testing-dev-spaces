@@ -17,7 +17,7 @@ metadata:
 components:
   - name: runtime
     container:
-      image: ourregistryURL/jupyter-notebook-docker:prod
+      image: quay.io/jupyter/datascience-notebook:latest
       command: ["start-notebook.sh"]
       args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
       memoryLimit: '32Gi'
