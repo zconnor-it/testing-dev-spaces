@@ -1,4 +1,4 @@
-schemaVersion: 2.3.0
+schemaVersion: 2.2.2
 attributes:
   editorFree: true
 metadata:
@@ -13,13 +13,26 @@ metadata:
     - MachineLearning
   projectType: Python
   language: Python
-  version: 1.0.0
+  version: 1.2.0
 components:
   - name: runtime
     container:
       image: quay.io/jupyter/datascience-notebook:latest
       command: ["start-notebook.sh"]
-      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
+      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser", "--notebook-dir=/projects"]
+      memoryLimit: 2Gi
+      mountSources: true
       endpoints:
         - name: frontend
           targetPort: 8888
+          attributes:
+            public: true
+      env:
+        - name: JUPYTER_RUNTIME_DIR
+          value: /tmp/jupyter/runtime
+        - name: JUPYTER_DATA_DIR
+          value: /tmp/jupyter/data
+        - name: JUPYTER_CONFIG_DIR
+          value: /tmp/jupyter/config
+        - name: HOME
+          value: /tmp
