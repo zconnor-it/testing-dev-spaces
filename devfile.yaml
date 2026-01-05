@@ -1,83 +1,64 @@
+# Example Devfile for OpenShift Dev Spaces WITHOUT VS Code
+# This devfile uses editorFree: true to prevent any IDE from starting
+# Users access Jupyter Notebook directly via the exposed endpoint
+#
+# Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
+
 schemaVersion: 2.3.0
 
 attributes:
-
-    editorFree: true
+  # This is the key attribute that prevents VS Code from starting
+  editorFree: true
+  
+  # Alternative: Use a specific editor definition instead of editorFree
+  # che-editor: redhat-custom/no-vscode/1.0.0
 
 metadata:
-
   name: devspaces-jupyter
-
   displayName: Devspaces Jupyter Notebook
-
-  description: "OpenShift Dev Spaces Jupyter Notebook"
-
-  icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/angular.svg
-
+  description: "OpenShift Dev Spaces Jupyter Notebook - No VS Code"
+  icon: https://raw.githubusercontent.com/devfile-samples/devfile-stack-icons/main/python.svg
   tags:
-
     - DataScience
-
     - Python
-
     - Jupyter
-
     - MachineLearning
-
+    - No-VSCode
   projectType: Python
-
   language: Python
-
   version: 1.0.0
 
 components:
-
   - name: runtime
-
     container:
-
+      # Replace with your actual Jupyter notebook image
       image: ourregistryURL/jupyter-notebook-docker:prod
-
       command: ["start-notebook.sh"]
-
       args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
-
       memoryLimit: '32Gi'
-
       memoryRequest: '32Gi'
-
       cpuLimit: '2'
-
       cpuRequest: '2'
-
       endpoints:
-
-        - name: frontend
-
+        - name: jupyter
           targetPort: 8888
-
+          exposure: public
+          protocol: https
+          attributes:
+            # This makes Jupyter the main URL shown to users
+            type: main
+            cookiesAuthEnabled: true
+            urlRewriteSupported: true
       env:
-
         - name: NB_USER
-
           value: "jovyan"
-
         - name: NB_UID
-
           value: "1003660000"
-
         - name: NB_GID
-
           value: "1003660000"
-
     attributes:
-
       container-overrides:
-
         securityContext:
-
           runAsUser: 1003660000
-
           runAsGroup: 1003660000
-
           fsGroup: 1003660000

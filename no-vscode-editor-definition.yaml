@@ -1,26 +1,27 @@
 # Editor definition that prevents VS Code from starting in OpenShift Dev Spaces
-# This creates a "no-op" editor using Red Hat UBI that replaces the default VS Code editor
+# This creates a minimal "no-IDE" editor using Red Hat UBI that replaces the default VS Code editor
+# Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
 metadata:
-  # Editor name - this will override/replace VS Code selections
+  # Editor name - must consist of lower case alphanumeric characters, '-' or '.'
   name: no-vscode
   displayName: No VS Code Editor (Red Hat UBI)
-  description: Prevents VS Code from starting using Red Hat Universal Base Image
+  description: Minimal workspace without VS Code - uses Red Hat Universal Base Image
   tags:
-    - Disabled
     - No-IDE
+    - Minimal
     - Red-Hat-UBI
   attributes:
-    title: VS Code Disabled - Red Hat UBI
-    # Supported architectures (Red Hat UBI supports both)
+    title: Minimal Workspace - No VS Code
+    # Supported architectures
     arch:
       - x86_64
       - arm64
-    # Publisher name
+    # Publisher name (MANDATORY)
     publisher: redhat-custom
-    # Version
+    # Version (MANDATORY)
     version: 1.0.0
-    repository: https://github.com/eclipse/che
+    repository: https://github.com/zconnor-it/testing-dev-spaces
     firstPublicationDate: '2024-01-01'
     iconMediatype: image/svg+xml
     iconData: |
@@ -28,51 +29,57 @@ metadata:
         <circle cx="12" cy="12" r="10" stroke="#EE0000" stroke-width="2" fill="none"/>
         <line x1="15" y1="9" x2="9" y2="15" stroke="#EE0000" stroke-width="2"/>
         <line x1="9" y1="9" x2="15" y2="15" stroke="#EE0000" stroke-width="2"/>
-        <text x="12" y="18" text-anchor="middle" font-size="6" fill="#EE0000">UBI</text>
       </svg>
 
-# Minimal components that don't actually start VS Code - using Red Hat UBI
+# Components for the no-IDE workspace
 components:
-  - name: no-vscode-container
-    attributes:
-      app.kubernetes.io/component: no-vscode-runtime
-      app.kubernetes.io/part-of: no-vscode-editor
+  # Init container that prepares the workspace (runs during preStart)
+  - name: no-vscode-injector
     container:
-      # Use Red Hat Universal Base Image (UBI) - minimal version for smaller footprint
+      # Red Hat UBI minimal for init container
       image: 'registry.access.redhat.com/ubi9/ubi-minimal:latest'
-      # Command that just sleeps indefinitely without starting any IDE
       command:
-        - /bin/bash
+        - /bin/sh
       args:
         - -c
         - |
-          echo "========================================"
-          echo "VS Code Startup Prevention - Red Hat UBI"
-          echo "========================================"
-          echo "VS Code has been disabled in this workspace"
-          echo "Using Red Hat Universal Base Image (UBI9)"
-          echo "This editor definition prevents VS Code from starting"
-          echo "Container: $(cat /etc/redhat-release 2>/dev/null || echo 'Red Hat UBI')"
-          echo "========================================"
-          # Keep container alive but don't start any IDE
-          exec sleep infinity
-      # Minimal resource allocation
+          echo "No VS Code Editor - Init Complete"
+          echo "Red Hat UBI container ready"
       memoryLimit: 64Mi
       memoryRequest: 32Mi
       cpuLimit: 100m
       cpuRequest: 50m
+      volumeMounts:
+        - name: workspace-data
+          path: /workspace-data
+
+  # Runtime container with container-contribution for merging with user's devfile
+  - name: no-vscode-runtime
+    attributes:
+      app.kubernetes.io/component: no-vscode-runtime
+      app.kubernetes.io/part-of: no-vscode-editor
+      # This allows the container to be merged with the user's workspace container
+      controller.devfile.io/container-contribution: true
+    container:
+      # Red Hat UBI - this image is used as a base but gets merged with user's container
+      image: 'registry.access.redhat.com/ubi9/ubi-minimal:latest'
+      memoryLimit: 128Mi
+      memoryRequest: 64Mi
+      cpuLimit: 200m
+      cpuRequest: 100m
       env:
         - name: EDITOR_DISABLED
           value: "true"
-        - name: NO_VSCODE_MESSAGE
-          value: "VS Code startup has been prevented by Red Hat UBI container"
+        - name: NO_VSCODE
+          value: "true"
         - name: CONTAINER_TYPE
           value: "Red Hat UBI9 Minimal"
-        - name: RED_HAT_CONTAINER
-          value: "true"
-      # Provide a dummy endpoint that doesn't serve VS Code
+      volumeMounts:
+        - name: workspace-data
+          path: /workspace-data
+      # Minimal endpoint - not serving any IDE
       endpoints:
-        - name: no-vscode-endpoint
+        - name: no-vscode-status
           attributes:
             type: main
             cookiesAuthEnabled: false
@@ -83,33 +90,36 @@ components:
           secure: false
           protocol: http
 
-# Events that run our no-op commands
-events:
-  preStart:
-    - disable-vscode-command
-  postStart:
-    - show-disabled-message
+  # Ephemeral volume for workspace data
+  - name: workspace-data
+    volume:
+      ephemeral: true
 
-# Commands that prevent VS Code startup using Red Hat UBI
+# Events that control startup sequence
+events:
+  # preStart uses apply commands for init containers
+  preStart:
+    - init-no-vscode
+  # postStart uses exec commands that run after workspace is ready
+  postStart:
+    - show-status-message
+
+# Commands for the workspace lifecycle
 commands:
-  - id: disable-vscode-command
+  # Apply command for init container (runs during preStart)
+  - id: init-no-vscode
+    apply:
+      component: no-vscode-injector
+
+  # Exec command for post-start messaging
+  - id: show-status-message
     exec:
-      component: no-vscode-container
+      component: no-vscode-runtime
       commandLine: |
-        echo "Preventing VS Code startup using Red Hat UBI..."
+        echo "=========================================="
+        echo "No VS Code Workspace Active"
+        echo "=========================================="
+        echo "VS Code has been disabled in this workspace"
         echo "Container: Red Hat Universal Base Image (UBI9)"
-        echo "VS Code has been disabled via custom Red Hat container-based editor definition"
-        
-  - id: show-disabled-message
-    exec:
-      component: no-vscode-container
-      commandLine: |
-        echo "=========================================="
-        echo "VS Code Startup Prevention Active"
-        echo "Red Hat UBI Container Implementation"
-        echo "=========================================="
-        echo "This workspace uses Red Hat Universal Base Image"
-        echo "VS Code startup has been prevented by policy"
-        echo "Container OS: $(cat /etc/redhat-release 2>/dev/null || echo 'Red Hat UBI9')"
-        echo "Contact your administrator if you need IDE access"
+        echo "Your workspace components are running"
         echo "=========================================="

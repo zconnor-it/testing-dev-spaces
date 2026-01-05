@@ -1,70 +1,151 @@
-# Preventing VS Code Startup in OpenShift Dev Spaces with Red Hat UBI
+# Creating Dev Spaces Without VS Code in OpenShift
 
-This directory contains files to prevent VS Code from starting in OpenShift Dev Spaces environments by deploying a custom editor definition that replaces VS Code with a minimal Red Hat Universal Base Image (UBI) container.
+This repository provides a complete solution for creating OpenShift Dev Spaces workspaces that **do not launch VS Code**. This is useful for:
 
-## Files
+- Running Jupyter Notebooks as the primary interface
+- Headless workspaces for automated tasks
+- Custom IDE deployments
+- Resource-constrained environments
 
-- `no-vscode-editor-definition.yaml` - Custom Red Hat UBI-based editor definition that prevents VS Code startup
-- `deploy-no-vscode-editor.sh` - Automated deployment script for Red Hat UBI solution
-- `README-no-vscode-setup.md` - This documentation file
-
-## How It Works
-
-The solution uses Eclipse Che's custom editor definition feature with Red Hat containers to:
-
-1. **Replace VS Code**: Creates a custom editor definition that overrides the default VS Code editor
-2. **Red Hat UBI Container**: Uses Red Hat Universal Base Image 9 (UBI9) minimal container for compliance
-3. **Resource Minimal**: Allocates minimal resources (64Mi RAM, 100m CPU) 
-4. **No IDE Interface**: Provides no actual IDE interface, just status messages
-5. **Clear Messaging**: Displays messages explaining that VS Code has been disabled
-6. **Red Hat Compliance**: Uses only Red Hat certified container images
+Based on the [Eclipse Che Editor Definitions Documentation](https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/).
 
 ## Quick Start
 
-1. **Deploy the editor definition**:
-   ```bash
-   ./deploy-no-vscode-editor.sh
-   ```
+### Method 1: Use `editorFree: true` (Simplest)
 
-2. **Verify deployment**:
-   ```bash
-   kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces
-   ```
+Add this attribute to your `devfile.yaml`:
 
-3. **Check available editors via API**:
-   ```bash
-   curl https://<your-devspaces-url>/dashboard/api/editors
-   ```
+```yaml
+schemaVersion: 2.3.0
+attributes:
+  editorFree: true
+metadata:
+  name: my-workspace
+# ... rest of your devfile
+```
 
-4. **Verify Red Hat UBI container**:
-   ```bash
-   kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces -o yaml | grep "ubi9/ubi-minimal"
-   ```
+This tells Dev Spaces to skip the editor entirely. Your workspace will only run the containers you define.
 
-## Manual Deployment Steps
+### Method 2: Deploy Custom No-VSCode Editor Definition
 
-If you prefer to deploy manually instead of using the script:
+For organization-wide control, deploy the custom editor definition:
 
-1. **Create ConfigMap**:
-   ```bash
-   kubectl create configmap no-vscode-editor-definition-ubi \
-     --from-file=no-vscode-editor-definition.yaml \
-     -n openshift-devspaces
-   ```
+```bash
+# Clone this repository
+git clone https://github.com/zconnor-it/testing-dev-spaces.git
+cd testing-dev-spaces
 
-2. **Add required labels**:
-   ```bash
-   kubectl label configmap no-vscode-editor-definition-ubi \
-     app.kubernetes.io/part-of=che.eclipse.org \
-     app.kubernetes.io/component=editor-definition \
-     -n openshift-devspaces
-   ```
+# Deploy the no-vscode editor definition
+./deploy-no-vscode-editor.sh
 
-## Making It Default (Optional)
+# Or specify a custom namespace
+./deploy-no-vscode-editor.sh -n eclipse-che
+```
 
-To make this Red Hat UBI-based editor the default for all new workspaces, you can:
+## Files in This Repository
 
-### Option 1: Update CheCluster Custom Resource
+| File | Purpose |
+|------|---------|
+| `devfile.yaml` | Example devfile for Jupyter Notebook workspace without VS Code |
+| `no-vscode-editor-definition.yaml` | Custom editor definition using Red Hat UBI |
+| `deploy-no-vscode-editor.sh` | Automated deployment script |
+| `README-no-vscode-setup.md` | This documentation |
+
+## How It Works
+
+### Understanding Eclipse Che Editor Definitions
+
+Eclipse Che (the upstream project for OpenShift Dev Spaces) uses **editor definitions** to inject IDE components into workspaces. By default, this is VS Code (che-code).
+
+The editor definition is a devfile that specifies:
+- **Init containers**: Run during `preStart` to prepare the editor
+- **Runtime containers**: Provide the IDE interface with `container-contribution: true`
+- **Endpoints**: Expose the IDE on specific ports
+- **Commands**: Lifecycle hooks for startup/shutdown
+
+### Our No-VSCode Editor
+
+The `no-vscode-editor-definition.yaml` creates a minimal editor that:
+
+1. Uses Red Hat UBI (Universal Base Image) instead of VS Code
+2. Allocates minimal resources (128Mi RAM, 200m CPU)
+3. Provides no IDE interface
+4. Allows your workspace containers to run without editor overhead
+
+## Deployment Options
+
+### Option A: Deploy Editor Definition (Admin)
+
+Requires cluster admin access to the Dev Spaces namespace:
+
+```bash
+# Deploy
+./deploy-no-vscode-editor.sh
+
+# Verify
+./deploy-no-vscode-editor.sh --verify
+
+# Remove
+./deploy-no-vscode-editor.sh --delete
+```
+
+### Option B: Manual Deployment
+
+```bash
+# Set your namespace
+NAMESPACE="openshift-devspaces"
+
+# Create the ConfigMap
+kubectl create configmap no-vscode-editor-definition \
+  --from-file=no-vscode-editor-definition.yaml \
+  -n $NAMESPACE
+
+# Add required labels (CRITICAL - without these, Che won't recognize it)
+kubectl label configmap no-vscode-editor-definition \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=editor-definition \
+  -n $NAMESPACE
+```
+
+### Option C: Use editorFree in Your Devfile
+
+No admin access needed - just add to your devfile:
+
+```yaml
+attributes:
+  editorFree: true
+```
+
+## Using the No-VSCode Editor
+
+### In Your Devfile
+
+Reference the editor in your devfile:
+
+```yaml
+schemaVersion: 2.3.0
+attributes:
+  che-editor: redhat-custom/no-vscode/1.0.0
+metadata:
+  name: my-workspace
+components:
+  - name: my-container
+    container:
+      image: 'registry.access.redhat.com/ubi9/python-311:latest'
+```
+
+### Via URL Parameter
+
+Start a workspace with the editor via URL:
+
+```
+https://<devspaces-url>/dashboard/#/<git-repo-url>?che-editor=redhat-custom/no-vscode/1.0.0
+```
+
+### As Default for All Workspaces
+
+Update the CheCluster custom resource:
+
 ```yaml
 apiVersion: org.eclipse.che/v2
 kind: CheCluster
@@ -75,99 +156,119 @@ spec:
     defaultEditor: redhat-custom/no-vscode/1.0.0
 ```
 
-### Option 2: Configure in Dashboard
-1. Access Dev Spaces dashboard as admin
-2. Go to administration settings  
-3. Set default editor to `redhat-custom/no-vscode/1.0.0`
+## Example: Jupyter Notebook Workspace
+
+The included `devfile.yaml` demonstrates a Jupyter Notebook workspace without VS Code:
+
+```yaml
+schemaVersion: 2.3.0
+attributes:
+  editorFree: true
+metadata:
+  name: devspaces-jupyter
+  displayName: Devspaces Jupyter Notebook
+components:
+  - name: runtime
+    container:
+      image: yourregistry/jupyter-notebook:latest
+      command: ["start-notebook.sh"]
+      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
+      endpoints:
+        - name: frontend
+          targetPort: 8888
+```
+
+Users access Jupyter directly via the exposed endpoint instead of VS Code.
 
 ## Verification
 
-After deployment, you can verify the Red Hat UBI-based editor definition is available:
-
-1. **Via API**: `https://<devspaces-url>/dashboard/api/editors/devfile?che-editor=redhat-custom/no-vscode/1.0.0`
-2. **Via Dashboard**: Check the editor selection dropdown in workspace creation (look for "No VS Code Editor (Red Hat UBI)")
-3. **Via kubectl**: `kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces -o yaml`
-4. **Container Image**: Verify UBI image: `registry.access.redhat.com/ubi9/ubi-minimal:latest`
-
-## What Users Will See
-
-When users try to create a workspace with this Red Hat UBI editor:
-
-- The workspace will start successfully using Red Hat UBI containers
-- Instead of VS Code, they'll see a minimal Red Hat container
-- Console output will show Red Hat UBI information and VS Code disabled messages
-- No IDE interface will be available
-- Resource usage will be minimal (64Mi RAM, 100m CPU)
-- Full Red Hat container compliance and support
-
-## Customization
-
-You can modify the Red Hat UBI-based editor definition to:
-
-- **Change the UBI version**: Update to different Red Hat UBI images (ubi8, ubi9, different variants)
-- **Modify resource limits**: Adjust `memoryLimit`, `cpuLimit`, etc.
-- **Update messaging**: Change the command outputs and environment variables
-- **Add Red Hat tooling**: Include additional Red Hat tools or monitoring
-- **Different UBI variants**: Use `registry.access.redhat.com/ubi9/ubi:latest` for full UBI instead of minimal
-
-## Available Red Hat UBI Images
-
-- `registry.access.redhat.com/ubi9/ubi-minimal:latest` (currently used - smallest)
-- `registry.access.redhat.com/ubi9/ubi:latest` (full UBI with more tools)
-- `registry.access.redhat.com/ubi8/ubi-minimal:latest` (UBI 8 minimal)
-- `registry.access.redhat.com/ubi8/ubi:latest` (UBI 8 full)
-
-## Removal
-
-To remove the Red Hat UBI no-vscode editor definition:
+### Check Editor Definition Deployment
 
 ```bash
-kubectl delete configmap no-vscode-editor-definition-ubi -n openshift-devspaces
+# List all editor definitions
+kubectl get configmap -n openshift-devspaces \
+  -l app.kubernetes.io/component=editor-definition
+
+# View the no-vscode editor
+kubectl get configmap no-vscode-editor-definition \
+  -n openshift-devspaces -o yaml
+```
+
+### Check Via API
+
+```bash
+# List all available editors
+curl https://<devspaces-url>/dashboard/api/editors
+
+# Get specific editor definition
+curl "https://<devspaces-url>/dashboard/api/editors/devfile?che-editor=redhat-custom/no-vscode/1.0.0"
+```
+
+### Verify Workspace Started Without VS Code
+
+```bash
+# Check running pods in your user namespace
+kubectl get pods -n <user-namespace>
+
+# Should NOT see che-code containers
+kubectl get pods -n <user-namespace> -o jsonpath='{.items[*].spec.containers[*].name}' | tr ' ' '\n' | grep -v che-code
 ```
 
 ## Troubleshooting
 
-### Common Issues
+### Editor Not Appearing in Dashboard
 
-1. **Permission Denied**: Ensure you have admin access to the OpenShift Dev Spaces namespace
-2. **Namespace Not Found**: Verify the correct namespace name (might be `eclipse-che` instead of `openshift-devspaces`)
-3. **Editor Not Appearing**: Check that the ConfigMap has the correct labels
-4. **Workspace Won't Start**: Verify the container image is accessible from your cluster
+1. Check ConfigMap exists with correct labels:
+   ```bash
+   kubectl get configmap no-vscode-editor-definition \
+     -n openshift-devspaces --show-labels
+   ```
 
-### Checking Logs
+2. Ensure labels are correct:
+   - `app.kubernetes.io/part-of=che.eclipse.org`
+   - `app.kubernetes.io/component=editor-definition`
 
+3. Refresh the Dev Spaces dashboard (clear browser cache)
+
+### Workspace Fails to Start
+
+1. Check the DevWorkspace status:
+   ```bash
+   kubectl get devworkspace -n <user-namespace>
+   kubectl describe devworkspace <workspace-name> -n <user-namespace>
+   ```
+
+2. Verify the container image is accessible:
+   ```bash
+   kubectl run test-ubi \
+     --image=registry.access.redhat.com/ubi9/ubi-minimal:latest \
+     --rm -it --restart=Never -- echo "Access OK"
+   ```
+
+### Permission Denied Errors
+
+Ensure you have admin access to the Dev Spaces namespace:
 ```bash
-# Check if Red Hat UBI ConfigMap exists and has correct labels
-kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces --show-labels
-
-# Check the Red Hat UBI editor definition content
-kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces -o yaml
-
-# Verify Red Hat UBI container image
-kubectl get configmap no-vscode-editor-definition-ubi -n openshift-devspaces -o yaml | grep "ubi9/ubi-minimal"
-
-# Check available editors via API (replace with your actual URL)
-curl https://your-devspaces-url/dashboard/api/editors
-
-# Check if Red Hat registry is accessible from cluster
-kubectl run test-ubi --image=registry.access.redhat.com/ubi9/ubi-minimal:latest --rm -it --restart=Never -- echo "UBI access test"
+kubectl auth can-i create configmaps -n openshift-devspaces
 ```
 
-## Red Hat UBI Benefits
+## Red Hat UBI Images
 
-Using Red Hat Universal Base Image provides:
+The solution uses Red Hat Universal Base Image for enterprise compliance:
 
-- **Enterprise Support**: Full Red Hat support and updates
-- **Security**: Regular security updates and CVE patching
-- **Compliance**: Meets enterprise security and compliance requirements
-- **Minimal Attack Surface**: UBI Minimal reduces container footprint
-- **Container Optimization**: Optimized for container environments
-- **Registry Access**: Available from Red Hat's public registry without authentication
+| Image | Size | Use Case |
+|-------|------|----------|
+| `ubi9/ubi-minimal:latest` | ~37MB | Smallest footprint (default) |
+| `ubi9/ubi:latest` | ~211MB | Full tools and utilities |
+| `ubi9/ubi-init:latest` | ~230MB | SystemD support |
 
 ## References
 
-- [Eclipse Che Editor Definitions Documentation](https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/)
+- [Eclipse Che - Configuring Editors Definitions](https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/)
 - [Devfile Schema Documentation](https://devfile.io/)
 - [OpenShift Dev Spaces Documentation](https://access.redhat.com/documentation/en-us/red_hat_openshift_dev_spaces/)
-- [Red Hat Universal Base Image Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/building_running_and_managing_containers/using_red_hat_universal_base_images_standard_minimal_and_runtimes)
-- [Red Hat Container Catalog - UBI](https://catalog.redhat.com/software/containers/ubi9/ubi-minimal)
+- [Red Hat UBI Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/building_running_and_managing_containers/using_red_hat_universal_base_images_standard_minimal_and_runtimes)
+
+## License
+
+This project is provided as-is for educational and demonstration purposes.
