@@ -1,12 +1,11 @@
 # Devfile for OpenShift Dev Spaces WITHOUT VS Code
-# Uses editorFree: true to prevent any IDE from starting
-#
 # Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 
 schemaVersion: 2.3.0
 
 attributes:
-  editorFree: true
+  # Try multiple attribute formats to disable the editor
+  controller.devfile.io/editor-free: true
 
 metadata:
   name: devspaces-no-vscode-test
@@ -24,7 +23,7 @@ components:
         - "-c"
         - |
           echo "=== Workspace Started Successfully ==="
-          echo "VS Code has been disabled (editorFree: true)"
+          echo "VS Code has been disabled"
           echo "Starting simple HTTP server on port 8080..."
           cd /tmp
           echo "<html><body><h1>Workspace Running!</h1><p>VS Code is disabled. This is a simple test page.</p></body></html>" > index.html
