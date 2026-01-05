@@ -12,7 +12,8 @@ components:
     container:
       image: registry.access.redhat.com/ubi9/python-311:latest
       memoryLimit: 2Gi
-      # Removed mountSources to avoid PVC storage issues
+      mountSources: true
+      sourceMapping: /projects
       command: ["/bin/bash"]
       args: 
         - "-c"
