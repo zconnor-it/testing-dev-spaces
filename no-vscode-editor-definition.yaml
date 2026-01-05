@@ -2,6 +2,10 @@
 # This creates a minimal "no-IDE" editor using Red Hat UBI
 # Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
+
+attributes:
+  controller.devfile.io/storage-type: per-workspace
+
 metadata:
   name: no-vscode
   displayName: No VS Code Editor (Red Hat UBI)
@@ -28,7 +32,12 @@ metadata:
       </svg>
 
 components:
-  # Minimal runtime container - contributes to the user's workspace
+  # Explicit persistent volume with size
+  - name: projects
+    volume:
+      size: 5Gi
+
+  # Minimal runtime container
   - name: no-vscode-runtime
     attributes:
       controller.devfile.io/container-contribution: true
@@ -40,6 +49,9 @@ components:
       cpuRequest: 100m
       mountSources: true
       sourceMapping: /projects
+      volumeMounts:
+        - name: projects
+          path: /projects
       command:
         - tail
       args:
