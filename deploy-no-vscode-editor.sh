@@ -249,8 +249,6 @@ deploy_editor() {
     echo "  attributes:"
     echo "    che-editor: $EDITOR_ID"
     echo ""
-    echo "Or use editorFree: true in your devfile attributes to skip the editor entirely"
-    echo ""
     echo "To make this the default editor, update your CheCluster:"
     echo "  spec:"
     echo "    devEnvironments:"
