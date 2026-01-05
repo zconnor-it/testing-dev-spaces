@@ -1,14 +1,11 @@
-# Devfile for OpenShift Dev Spaces WITHOUT VS Code
-# Reference: https://docs.redhat.com/documentation/en-us/red_hat_openshift_dev_spaces/
+# Devfile for OpenShift Dev Spaces
+# To disable VS Code, use a custom editor definition deployed to the cluster
+# Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 
 schemaVersion: 2.1.0
 
 metadata:
-  name: devspaces-no-vscode-test
-
-attributes:
-  # This explicitly tells Dev Spaces not to launch any IDE
-  editor: null
+  name: devspaces-test
 
 components:
   - name: runtime
@@ -22,18 +19,13 @@ components:
       args: 
         - "-c"
         - |
-          echo "=== Workspace Started Successfully ==="
-          echo "VS Code has been disabled (editor: null)"
+          echo "=== Workspace Started ==="
           echo "Starting simple HTTP server on port 8080..."
           cd /tmp
-          echo "<html><body><h1>Workspace Running!</h1><p>VS Code is disabled. This is a simple test page.</p></body></html>" > index.html
+          echo "<html><body><h1>Workspace Running!</h1><p>Custom runtime container is active.</p></body></html>" > index.html
           python -m http.server 8080
       endpoints:
         - name: web
           targetPort: 8080
           exposure: public
           protocol: https
-          attributes:
-            type: main
-            cookiesAuthEnabled: true
-            urlRewriteSupported: true
