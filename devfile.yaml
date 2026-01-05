@@ -31,14 +31,14 @@ metadata:
 components:
   - name: runtime
     container:
-      # Replace with your actual Jupyter notebook image
-      image: ourregistryURL/jupyter-notebook-docker:prod
+      # Using official Jupyter minimal-notebook image
+      image: quay.io/jupyter/minimal-notebook:latest
       command: ["start-notebook.sh"]
-      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser"]
-      memoryLimit: '32Gi'
-      memoryRequest: '32Gi'
+      args: ["--ip=0.0.0.0", "--port=8888", "--no-browser", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+      memoryLimit: '4Gi'
+      memoryRequest: '1Gi'
       cpuLimit: '2'
-      cpuRequest: '2'
+      cpuRequest: '500m'
       endpoints:
         - name: jupyter
           targetPort: 8888
@@ -52,13 +52,3 @@ components:
       env:
         - name: NB_USER
           value: "jovyan"
-        - name: NB_UID
-          value: "1003660000"
-        - name: NB_GID
-          value: "1003660000"
-    attributes:
-      container-overrides:
-        securityContext:
-          runAsUser: 1003660000
-          runAsGroup: 1003660000
-          fsGroup: 1003660000
