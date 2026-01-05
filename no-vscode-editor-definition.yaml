@@ -34,10 +34,12 @@ components:
       controller.devfile.io/container-contribution: true
     container:
       image: 'registry.access.redhat.com/ubi9/ubi-minimal:latest'
-      memoryLimit: 128Mi
-      memoryRequest: 64Mi
-      cpuLimit: 200m
+      memoryLimit: 256Mi
+      memoryRequest: 128Mi
+      cpuLimit: 500m
       cpuRequest: 100m
+      mountSources: true
+      sourceMapping: /projects
       command:
         - tail
       args:
