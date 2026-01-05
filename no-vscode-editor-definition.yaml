@@ -1,18 +1,18 @@
-# Editor definition that prevents VS Code from starting in OpenShift Dev Spaces
-# This creates a minimal "no-IDE" editor using Red Hat UBI
+# Editor definition that runs Jupyter Notebook instead of VS Code
 # Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
 
 metadata:
   name: no-vscode
-  displayName: No VS Code Editor (Red Hat UBI)
-  description: Minimal workspace without VS Code - uses Red Hat Universal Base Image
+  displayName: Jupyter Notebook (No VS Code)
+  description: Jupyter Notebook workspace without VS Code
   tags:
+    - Jupyter
+    - Python
+    - DataScience
     - No-IDE
-    - Minimal
-    - Red-Hat-UBI
   attributes:
-    title: Minimal Workspace - No VS Code
+    title: Jupyter Notebook Workspace
     arch:
       - x86_64
       - arm64
@@ -22,38 +22,51 @@ metadata:
     firstPublicationDate: '2024-01-01'
     iconMediatype: image/svg+xml
     iconData: |
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" stroke="#EE0000" stroke-width="2" fill="none"/>
-        <line x1="15" y1="9" x2="9" y2="15" stroke="#EE0000" stroke-width="2"/>
-        <line x1="9" y1="9" x2="15" y2="15" stroke="#EE0000" stroke-width="2"/>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+        <circle cx="12" cy="12" r="10" fill="#F37626" />
+        <text x="12" y="16" text-anchor="middle" font-size="10" fill="white" font-weight="bold">J</text>
       </svg>
 
 components:
-  # Explicit persistent volume with size
+  # Persistent volume for projects/notebooks
   - name: projects
     volume:
       size: 5Gi
 
-  # Minimal runtime container
-  - name: no-vscode-runtime
+  # Jupyter Notebook container
+  - name: jupyter-notebook
     attributes:
       controller.devfile.io/container-contribution: true
     container:
-      image: 'registry.access.redhat.com/ubi9/ubi-minimal:latest'
-      memoryLimit: 256Mi
-      memoryRequest: 128Mi
-      cpuLimit: 500m
-      cpuRequest: 100m
+      image: 'quay.io/jupyter/minimal-notebook:latest'
+      memoryLimit: 4Gi
+      memoryRequest: 1Gi
+      cpuLimit: '2'
+      cpuRequest: '500m'
       mountSources: true
-      sourceMapping: /projects
+      sourceMapping: /home/jovyan/projects
       volumeMounts:
         - name: projects
-          path: /projects
+          path: /home/jovyan/projects
       command:
-        - tail
+        - /bin/bash
       args:
-        - -f
-        - /dev/null
+        - -c
+        - |
+          echo "Starting Jupyter Notebook..."
+          start-notebook.sh --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_origin='*'
       env:
-        - name: EDITOR_DISABLED
-          value: "true"
+        - name: JUPYTER_ENABLE_LAB
+          value: "yes"
+        - name: NB_USER
+          value: "jovyan"
+      endpoints:
+        - name: jupyter
+          targetPort: 8888
+          exposure: public
+          protocol: https
+          attributes:
+            type: main
+            cookiesAuthEnabled: true
+            urlRewriteSupported: true
+            discoverable: true
