@@ -10,19 +10,18 @@ metadata:
 components:
   - name: runtime
     container:
-      # Red Hat UBI with Python - designed for OpenShift arbitrary UIDs
       image: registry.access.redhat.com/ubi9/python-311:latest
       memoryLimit: 2Gi
-      mountSources: true
-      # Simple HTTP server to verify the workspace is running
+      # Removed mountSources to avoid PVC storage issues
       command: ["/bin/bash"]
       args: 
         - "-c"
         - |
           echo "=== Workspace Started ==="
+          echo "VS Code has been disabled!"
           echo "Starting simple HTTP server on port 8080..."
           cd /tmp
-          echo "<html><body><h1>Workspace Running!</h1><p>Custom runtime container is active.</p></body></html>" > index.html
+          echo "<html><body><h1>Workspace Running!</h1><p>VS Code is disabled. Custom runtime container is active.</p></body></html>" > index.html
           python -m http.server 8080
       endpoints:
         - name: web
