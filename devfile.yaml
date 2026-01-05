@@ -1,37 +1,33 @@
 # Devfile for OpenShift Dev Spaces WITHOUT VS Code
-# Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
+# Reference: https://docs.redhat.com/documentation/en-us/red_hat_openshift_dev_spaces/
 
-schemaVersion: 2.3.0
-
-attributes:
-  # Try multiple attribute formats to disable the editor
-  controller.devfile.io/editor-free: true
+schemaVersion: 2.1.0
 
 metadata:
   name: devspaces-no-vscode-test
-  displayName: Dev Spaces - No VS Code Test
-  description: "Testing workspace without VS Code"
+
+attributes:
+  # This explicitly tells Dev Spaces not to launch any IDE
+  editor: null
 
 components:
   - name: runtime
     container:
       # Red Hat UBI with Python - designed for OpenShift arbitrary UIDs
       image: registry.access.redhat.com/ubi9/python-311:latest
+      memoryLimit: 2Gi
+      mountSources: true
       # Simple HTTP server to verify the workspace is running
       command: ["/bin/bash"]
       args: 
         - "-c"
         - |
           echo "=== Workspace Started Successfully ==="
-          echo "VS Code has been disabled"
+          echo "VS Code has been disabled (editor: null)"
           echo "Starting simple HTTP server on port 8080..."
           cd /tmp
           echo "<html><body><h1>Workspace Running!</h1><p>VS Code is disabled. This is a simple test page.</p></body></html>" > index.html
           python -m http.server 8080
-      memoryLimit: '2Gi'
-      memoryRequest: '512Mi'
-      cpuLimit: '1'
-      cpuRequest: '250m'
       endpoints:
         - name: web
           targetPort: 8080
