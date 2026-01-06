@@ -13,10 +13,9 @@ components:
   # Minimal placeholder - the editor definition contributes the actual Jupyter container
   - name: tools
     container:
-      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
-      memoryLimit: 128Mi
+      image: registry.access.redhat.com/ubi9/ubi:latest
+      memoryLimit: 256Mi
       command:
-        - tail
+        - sleep
       args:
-        - -f
-        - /dev/null
+        - infinity
