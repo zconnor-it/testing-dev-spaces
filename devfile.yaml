@@ -24,6 +24,11 @@ components:
       volumeMounts:
         - name: projects
           path: /projects
+      # Keep container running with tail
+      args:
+        - tail
+        - -f
+        - /dev/null
       endpoints:
         - name: jupyter
           targetPort: 8888
@@ -33,8 +38,14 @@ components:
             type: main
 
 commands:
-  - id: install-and-run-jupyter
+  - id: install-jupyter
     exec:
       component: jupyter
-      commandLine: pip install --user jupyterlab && ~/.local/bin/jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token='' --ServerApp.password='' --notebook-dir=/projects
+      commandLine: pip install --user jupyterlab
+      workingDir: /projects
+      
+  - id: start-jupyter
+    exec:
+      component: jupyter
+      commandLine: ~/.local/bin/jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token='' --ServerApp.password='' --notebook-dir=/projects
       workingDir: /projects
