@@ -1,18 +1,17 @@
-# Editor definition that runs Jupyter Notebook instead of VS Code
+# Minimal editor definition that prevents VS Code from starting
+# The actual container is defined in the project's devfile.yaml
 # Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
 
 metadata:
   name: no-vscode
-  displayName: Jupyter Notebook (No VS Code)
-  description: Jupyter Notebook workspace without VS Code
+  displayName: No VS Code (Use Devfile Container)
+  description: Disables VS Code - uses container defined in devfile
   tags:
-    - Jupyter
-    - Python
-    - DataScience
     - No-IDE
+    - Minimal
   attributes:
-    title: Jupyter Notebook Workspace
+    title: No VS Code Editor
     arch:
       - x86_64
       - arm64
@@ -27,46 +26,5 @@ metadata:
         <text x="12" y="16" text-anchor="middle" font-size="10" fill="white" font-weight="bold">J</text>
       </svg>
 
-components:
-  # Persistent volume for projects/notebooks
-  - name: projects
-    volume:
-      size: 5Gi
-
-  # Jupyter Notebook container
-  - name: jupyter-notebook
-    attributes:
-      controller.devfile.io/container-contribution: true
-    container:
-      image: 'quay.io/jupyter/minimal-notebook:latest'
-      memoryLimit: 4Gi
-      memoryRequest: 1Gi
-      cpuLimit: '2'
-      cpuRequest: '500m'
-      mountSources: true
-      sourceMapping: /home/jovyan/projects
-      volumeMounts:
-        - name: projects
-          path: /home/jovyan/projects
-      command:
-        - /bin/bash
-      args:
-        - -c
-        - |
-          echo "Starting Jupyter Notebook..."
-          start-notebook.sh --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_origin='*'
-      env:
-        - name: JUPYTER_ENABLE_LAB
-          value: "yes"
-        - name: NB_USER
-          value: "jovyan"
-      endpoints:
-        - name: jupyter
-          targetPort: 8888
-          exposure: public
-          protocol: https
-          attributes:
-            type: main
-            cookiesAuthEnabled: true
-            urlRewriteSupported: true
-            discoverable: true
+# No components - the devfile provides the container
+# This editor just prevents VS Code from being injected

@@ -1,5 +1,4 @@
 # Devfile for OpenShift Dev Spaces with Jupyter Notebook
-# The Jupyter container is provided by the custom editor definition
 # Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 
 schemaVersion: 2.1.0
@@ -10,12 +9,18 @@ metadata:
   description: Data science workspace with Jupyter Notebook
 
 components:
-  # Minimal placeholder - the editor definition contributes the actual Jupyter container
-  - name: tools
+  - name: jupyter
     container:
-      image: registry.access.redhat.com/ubi9/ubi:latest
-      memoryLimit: 256Mi
-      command:
-        - sleep
-      args:
-        - infinity
+      image: quay.io/jupyter/minimal-notebook:latest
+      memoryLimit: 4Gi
+      memoryRequest: 1Gi
+      mountSources: true
+      sourceMapping: /home/jovyan/work
+      env:
+        - name: JUPYTER_ENABLE_LAB
+          value: "yes"
+      endpoints:
+        - name: jupyter
+          targetPort: 8888
+          exposure: public
+          protocol: https
