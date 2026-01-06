@@ -9,14 +9,13 @@ metadata:
   description: Data science workspace with Jupyter Notebook
 
 components:
-  # Explicit volume with size to avoid 0-size PVC error
+  # Explicit volume with size
   - name: projects
     volume:
       size: 5Gi
 
   - name: jupyter
     container:
-      # Use Red Hat UBI Python image and install Jupyter
       image: registry.access.redhat.com/ubi9/python-311:latest
       memoryLimit: 4Gi
       memoryRequest: 1Gi
@@ -25,15 +24,6 @@ components:
       volumeMounts:
         - name: projects
           path: /projects
-      command:
-        - /bin/bash
-      args:
-        - -c
-        - |
-          echo "Installing Jupyter..."
-          pip install --user jupyterlab notebook
-          echo "Starting JupyterLab..."
-          ~/.local/bin/jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --NotebookApp.token='' --NotebookApp.password='' --notebook-dir=/projects
       endpoints:
         - name: jupyter
           targetPort: 8888
@@ -41,3 +31,10 @@ components:
           protocol: https
           attributes:
             type: main
+
+commands:
+  - id: install-and-run-jupyter
+    exec:
+      component: jupyter
+      commandLine: pip install --user jupyterlab && ~/.local/bin/jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token='' --ServerApp.password='' --notebook-dir=/projects
+      workingDir: /projects
