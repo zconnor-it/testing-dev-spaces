@@ -40,6 +40,3 @@ components:
           protocol: https
           attributes:
             type: main
-            # OpenShift authentication - only workspace owner can access
-            cookiesAuthEnabled: true
-            urlRewriteSupported: true
