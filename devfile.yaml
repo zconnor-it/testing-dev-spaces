@@ -9,6 +9,11 @@ metadata:
   description: Data science workspace with Jupyter Notebook
 
 components:
+  # Explicit volume with size to avoid 0-size PVC error
+  - name: projects
+    volume:
+      size: 5Gi
+
   - name: jupyter
     container:
       image: quay.io/jupyter/minimal-notebook:latest
@@ -16,6 +21,9 @@ components:
       memoryRequest: 1Gi
       mountSources: true
       sourceMapping: /home/jovyan/work
+      volumeMounts:
+        - name: projects
+          path: /home/jovyan/work
       env:
         - name: JUPYTER_ENABLE_LAB
           value: "yes"
