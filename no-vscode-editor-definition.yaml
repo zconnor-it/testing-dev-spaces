@@ -26,9 +26,12 @@ metadata:
       </svg>
 
 components:
-  # Minimal sidecar that just stays alive
-  - name: editor-placeholder
+  # Use same UBI Python image with sleep to stay alive
+  - name: editor-sidecar
     container:
-      image: registry.access.redhat.com/ubi9/ubi-micro:latest
+      image: registry.access.redhat.com/ubi9/ubi:latest
       memoryLimit: 64Mi
       memoryRequest: 32Mi
+      args:
+        - sleep
+        - infinity
