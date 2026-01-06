@@ -1,5 +1,4 @@
 # Minimal editor definition that prevents VS Code from starting
-# The actual container is defined in the project's devfile.yaml
 # Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
 
@@ -26,5 +25,10 @@ metadata:
         <text x="12" y="16" text-anchor="middle" font-size="10" fill="white" font-weight="bold">J</text>
       </svg>
 
-# No components - the devfile provides the container
-# This editor just prevents VS Code from being injected
+components:
+  # Minimal sidecar that just stays alive
+  - name: editor-placeholder
+    container:
+      image: registry.access.redhat.com/ubi9/ubi-micro:latest
+      memoryLimit: 64Mi
+      memoryRequest: 32Mi
