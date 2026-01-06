@@ -1,31 +1,14 @@
-# Devfile for OpenShift Dev Spaces
-# To disable VS Code, use a custom editor definition deployed to the cluster
+# Devfile for OpenShift Dev Spaces with Jupyter Notebook
+# The Jupyter container is provided by the custom editor definition
 # Reference: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 
 schemaVersion: 2.1.0
 
 metadata:
-  name: devspaces-test
-
-components:
-  - name: runtime
-    container:
-      image: registry.access.redhat.com/ubi9/python-311:latest
-      memoryLimit: 2Gi
-      mountSources: true
-      sourceMapping: /projects
-      command: ["/bin/bash"]
-      args: 
-        - "-c"
-        - |
-          echo "=== Workspace Started ==="
-          echo "VS Code has been disabled!"
-          echo "Starting simple HTTP server on port 8080..."
-          cd /tmp
-          echo "<html><body><h1>Workspace Running!</h1><p>VS Code is disabled. Custom runtime container is active.</p></body></html>" > index.html
-          python -m http.server 8080
-      endpoints:
-        - name: web
-          targetPort: 8080
-          exposure: public
-          protocol: https
+  name: jupyter-workspace
+  displayName: Jupyter Notebook Workspace
+  description: Data science workspace with Jupyter Notebook
+  tags:
+    - Python
+    - Jupyter
+    - DataScience
