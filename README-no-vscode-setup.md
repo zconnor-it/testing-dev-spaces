@@ -69,6 +69,151 @@ The workspace will:
 - Generate a unique authentication token
 - Start JupyterLab on port 8888
 
+## Using Your Own Git Repository
+
+You can use your own Git repository with a custom devfile instead of this repository. This allows you to:
+- Use your own Jupyter notebooks and data
+- Customize the container configuration
+- Pre-install additional Python packages
+
+### Step 1: Create a Devfile in Your Repository
+
+Create a `devfile.yaml` file in the root of your Git repository:
+
+```yaml
+# devfile.yaml
+schemaVersion: 2.1.0
+
+metadata:
+  name: my-jupyter-workspace
+  displayName: My Jupyter Workspace
+  description: Custom Jupyter Notebook workspace
+
+components:
+  # Storage volume (required to avoid 0-size PVC error)
+  - name: projects
+    volume:
+      size: 5Gi
+
+  - name: jupyter
+    container:
+      image: registry.access.redhat.com/ubi9/python-311:latest
+      memoryLimit: 4Gi
+      memoryRequest: 1Gi
+      mountSources: true
+      sourceMapping: /projects
+      volumeMounts:
+        - name: projects
+          path: /projects
+      args:
+        - /bin/bash
+        - -c
+        - |
+          echo "Installing JupyterLab..."
+          pip install jupyterlab
+          
+          # Add your custom packages here
+          # pip install pandas numpy matplotlib scikit-learn
+          
+          # Generate authentication token
+          JUPYTER_TOKEN=$(python -c "import secrets; print(secrets.token_hex(32))")
+          
+          echo ""
+          echo "=============================================="
+          echo "JUPYTER AUTHENTICATION TOKEN"
+          echo "=============================================="
+          echo "Your Jupyter token for this session:"
+          echo ""
+          echo "  $JUPYTER_TOKEN"
+          echo "=============================================="
+          echo ""
+          
+          echo "$JUPYTER_TOKEN" > /tmp/jupyter-token.txt
+          
+          echo "Starting JupyterLab on port 8888..."
+          jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token="$JUPYTER_TOKEN" --notebook-dir=/projects
+      endpoints:
+        - name: jupyter
+          targetPort: 8888
+          exposure: public
+          protocol: https
+          attributes:
+            type: main
+```
+
+### Step 2: Commit and Push
+
+```bash
+git add devfile.yaml
+git commit -m "Add Jupyter devfile"
+git push
+```
+
+### Step 3: Create Workspace with Your Repo
+
+1. Go to the **Dev Spaces dashboard**
+2. Click **"Create Workspace"**
+3. Select **"No VS Code (Use Devfile Container)"** as the editor
+4. Enter **your Git repository URL**
+5. Click **"Create & Open"**
+
+### Customizing Your Devfile
+
+#### Pre-install Python Packages
+
+Add packages to the startup script:
+
+```yaml
+args:
+  - /bin/bash
+  - -c
+  - |
+    pip install jupyterlab pandas numpy matplotlib scikit-learn tensorflow
+    # ... rest of startup script
+```
+
+#### Use a Custom Container Image
+
+If you have a pre-built Jupyter image:
+
+```yaml
+container:
+  image: your-registry.com/your-jupyter-image:tag
+  # Remove the pip install commands if Jupyter is pre-installed
+  args:
+    - /bin/bash
+    - -c
+    - |
+      JUPYTER_TOKEN=$(python -c "import secrets; print(secrets.token_hex(32))")
+      echo "Token: $JUPYTER_TOKEN"
+      echo "$JUPYTER_TOKEN" > /tmp/jupyter-token.txt
+      jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --ServerApp.token="$JUPYTER_TOKEN" --notebook-dir=/projects
+```
+
+#### Increase Resources
+
+```yaml
+container:
+  memoryLimit: 16Gi
+  memoryRequest: 4Gi
+```
+
+#### Change Storage Size
+
+```yaml
+components:
+  - name: projects
+    volume:
+      size: 20Gi
+```
+
+### Important Notes for Custom Devfiles
+
+1. **Volume is required**: Always include the `projects` volume with a size to avoid storage errors
+2. **Repository must be accessible**: The repo must be public, or Dev Spaces must have OAuth configured for private repos
+3. **Container must stay running**: The container needs a long-running process (like `jupyter lab`)
+4. **Endpoint must be defined**: Include the `endpoints` section so you can access Jupyter
+
 ## Accessing Jupyter Notebook
 
 ### Finding Your Authentication Token
@@ -132,30 +277,6 @@ oc exec <pod-name> -c jupyter -n <your-namespace> -- cat /tmp/jupyter-token.txt
 ./deploy-no-vscode-editor.sh --help       # Show help
 ```
 
-## Customization
-
-### Change Memory/CPU Limits
-
-Edit `devfile.yaml`:
-```yaml
-memoryLimit: 8Gi
-memoryRequest: 2Gi
-```
-
-### Use a Different Jupyter Image
-
-Replace the image in `devfile.yaml`:
-```yaml
-image: your-registry/your-jupyter-image:tag
-```
-
-### Disable Token Authentication
-
-Edit the startup command in `devfile.yaml` to use empty token:
-```bash
-jupyter lab --ServerApp.token='' --ServerApp.password=''
-```
-
 ## Troubleshooting
 
 ### Workspace Won't Start
@@ -202,6 +323,14 @@ oc patch checluster devspaces -n openshift-devspaces --type=merge -p '
 Verify ConfigMap exists with correct labels:
 ```bash
 oc get configmap -n openshift-devspaces -l app.kubernetes.io/component=editor-definition
+```
+
+### Devfile Not Being Read from Private Repo
+
+If using a private Git repository, ensure OAuth is configured:
+```bash
+# Check if GitHub OAuth is configured
+oc get secret -n openshift-devspaces -l app.kubernetes.io/component=oauth-scm-configuration
 ```
 
 ## Removal
