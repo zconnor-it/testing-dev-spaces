@@ -8,7 +8,15 @@ metadata:
   name: jupyter-workspace
   displayName: Jupyter Notebook Workspace
   description: Data science workspace with Jupyter Notebook
-  tags:
-    - Python
-    - Jupyter
-    - DataScience
+
+components:
+  # Minimal placeholder - the editor definition contributes the actual Jupyter container
+  - name: tools
+    container:
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      memoryLimit: 128Mi
+      command:
+        - tail
+      args:
+        - -f
+        - /dev/null
