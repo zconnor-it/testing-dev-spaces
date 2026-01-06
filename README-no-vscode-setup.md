@@ -19,7 +19,6 @@ OpenShift Dev Spaces uses VS Code as the default editor. This solution deploys a
 |------|---------|
 | `devfile.yaml` | Defines Jupyter container with auto-install and token authentication |
 | `no-vscode-editor-definition.yaml` | Custom editor definition that prevents VS Code |
-| `deploy-no-vscode-editor.sh` | Deployment script for administrators |
 | `README-no-vscode-setup.md` | This documentation |
 
 ## Initial Setup (Administrator)
@@ -37,21 +36,93 @@ cd testing-dev-spaces
 oc login <your-openshift-api-url> --token=<your-token>
 ```
 
-### Step 3: Deploy the Editor Definition
+### Step 3: Create the ConfigMap
+
+Create a ConfigMap from the editor definition file:
 
 ```bash
-./deploy-no-vscode-editor.sh
+oc create configmap no-vscode-editor-definition \
+  --from-file=no-vscode-editor-definition.yaml \
+  -n openshift-devspaces
 ```
 
-Or specify a custom namespace:
+If using a different namespace (e.g., `eclipse-che`):
 ```bash
-./deploy-no-vscode-editor.sh -n eclipse-che
+oc create configmap no-vscode-editor-definition \
+  --from-file=no-vscode-editor-definition.yaml \
+  -n eclipse-che
 ```
 
-### Step 4: Verify Deployment
+### Step 4: Add Required Labels
+
+The ConfigMap **must** have these labels for Dev Spaces to recognize it as an editor definition:
 
 ```bash
-./deploy-no-vscode-editor.sh --verify
+oc label configmap no-vscode-editor-definition \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=editor-definition \
+  -n openshift-devspaces
+```
+
+### Step 5: Verify Deployment
+
+Check that the ConfigMap exists with correct labels:
+
+```bash
+oc get configmap no-vscode-editor-definition -n openshift-devspaces --show-labels
+```
+
+Expected output should show both labels:
+```
+NAME                          DATA   AGE   LABELS
+no-vscode-editor-definition   1      1m    app.kubernetes.io/component=editor-definition,app.kubernetes.io/part-of=che.eclipse.org
+```
+
+### Step 6: Refresh Dev Spaces Dashboard
+
+Refresh your browser on the Dev Spaces dashboard. The new editor option **"No VS Code (Use Devfile Container)"** should now appear in the editor dropdown when creating a workspace.
+
+## Updating the Editor Definition
+
+If you need to update the editor definition:
+
+```bash
+# Delete the existing ConfigMap
+oc delete configmap no-vscode-editor-definition -n openshift-devspaces
+
+# Recreate with updated file
+oc create configmap no-vscode-editor-definition \
+  --from-file=no-vscode-editor-definition.yaml \
+  -n openshift-devspaces
+
+# Re-add labels
+oc label configmap no-vscode-editor-definition \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=editor-definition \
+  -n openshift-devspaces
+```
+
+Or use `--dry-run` to update in place:
+
+```bash
+oc create configmap no-vscode-editor-definition \
+  --from-file=no-vscode-editor-definition.yaml \
+  -n openshift-devspaces \
+  --dry-run=client -o yaml | oc apply -f -
+
+oc label configmap no-vscode-editor-definition \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=editor-definition \
+  -n openshift-devspaces \
+  --overwrite
+```
+
+## Removing the Editor Definition
+
+To remove the custom editor:
+
+```bash
+oc delete configmap no-vscode-editor-definition -n openshift-devspaces
 ```
 
 ## Creating a Jupyter Workspace (Users)
@@ -267,16 +338,6 @@ oc exec <pod-name> -c jupyter -n <your-namespace> -- cat /tmp/jupyter-token.txt
 | **HTTPS** | All traffic encrypted via TLS |
 | **Workspace Isolation** | Each user has their own workspace namespace |
 
-## Script Options
-
-```bash
-./deploy-no-vscode-editor.sh              # Deploy to openshift-devspaces
-./deploy-no-vscode-editor.sh -n NAMESPACE # Deploy to custom namespace
-./deploy-no-vscode-editor.sh --verify     # Verify deployment
-./deploy-no-vscode-editor.sh --delete     # Remove editor definition
-./deploy-no-vscode-editor.sh --help       # Show help
-```
-
 ## Troubleshooting
 
 ### Workspace Won't Start
@@ -325,20 +386,20 @@ Verify ConfigMap exists with correct labels:
 oc get configmap -n openshift-devspaces -l app.kubernetes.io/component=editor-definition
 ```
 
+If labels are missing, add them:
+```bash
+oc label configmap no-vscode-editor-definition \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=editor-definition \
+  -n openshift-devspaces
+```
+
 ### Devfile Not Being Read from Private Repo
 
 If using a private Git repository, ensure OAuth is configured:
 ```bash
 # Check if GitHub OAuth is configured
 oc get secret -n openshift-devspaces -l app.kubernetes.io/component=oauth-scm-configuration
-```
-
-## Removal
-
-To remove the custom editor definition:
-
-```bash
-./deploy-no-vscode-editor.sh --delete
 ```
 
 ## References
