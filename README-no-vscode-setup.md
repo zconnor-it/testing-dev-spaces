@@ -80,7 +80,7 @@ no-vscode-editor-definition   1      1m    app.kubernetes.io/component=editor-de
 
 ### Step 6: Refresh Dev Spaces Dashboard
 
-Refresh your browser on the Dev Spaces dashboard. The new editor option **"No VS Code (Use Devfile Container)"** should now appear in the editor dropdown when creating a workspace.
+Refresh your browser on the Dev Spaces dashboard. The new editor option **"Jupyter Notebook (Devfile-Defined)"** should now appear in the editor dropdown when creating a workspace.
 
 ## Updating the Editor Definition
 
@@ -131,7 +131,7 @@ After the administrator deploys the editor definition:
 
 1. Go to the **Dev Spaces dashboard**
 2. Click **"Create Workspace"**
-3. Select **"No VS Code (Use Devfile Container)"** as the editor
+3. Select **"Jupyter Notebook (Devfile-Defined)"** as the editor
 4. Enter the Git repo URL: `https://github.com/zconnor-it/testing-dev-spaces`
 5. Click **"Create & Open"**
 
@@ -224,7 +224,7 @@ git push
 
 1. Go to the **Dev Spaces dashboard**
 2. Click **"Create Workspace"**
-3. Select **"No VS Code (Use Devfile Container)"** as the editor
+3. Select **"Jupyter Notebook (Devfile-Defined)"** as the editor
 4. Enter **your Git repository URL**
 5. Click **"Create & Open"**
 

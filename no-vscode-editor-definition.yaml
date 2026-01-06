@@ -1,16 +1,18 @@
-# Minimal editor definition that prevents VS Code from starting
+# Custom editor definition for Jupyter Notebook workspaces (no VS Code)
 # Based on: https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/
 schemaVersion: 2.2.2
 
 metadata:
-  name: no-vscode
-  displayName: No VS Code (Use Devfile Container)
-  description: Disables VS Code - uses container defined in devfile
+  name: jupyter-devfile-editor
+  displayName: Jupyter Notebook (Devfile-Defined)
+  description: Run Jupyter Notebook from your devfile without VS Code. Configure your Jupyter container in your repository's devfile.yaml.
   tags:
+    - Jupyter
+    - Python
+    - DataScience
     - No-IDE
-    - Minimal
   attributes:
-    title: No VS Code Editor
+    title: Jupyter Notebook Editor
     arch:
       - x86_64
       - arm64
@@ -26,7 +28,7 @@ metadata:
       </svg>
 
 components:
-  # Use same UBI Python image with sleep to stay alive
+  # Minimal sidecar container required by editor definition
   - name: editor-sidecar
     container:
       image: registry.access.redhat.com/ubi9/ubi:latest
