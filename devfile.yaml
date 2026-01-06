@@ -38,13 +38,8 @@ components:
           targetPort: 8888
           exposure: public
           protocol: https
-          # SECURITY: These attributes ensure only the workspace owner can access
           attributes:
             type: main
-            discoverable: true
-            # Requires OpenShift authentication - only workspace owner can access
+            # OpenShift authentication - only workspace owner can access
             cookiesAuthEnabled: true
-            # Rewrites URLs to go through the authenticated gateway
             urlRewriteSupported: true
-            # Only the authenticated user can access (not other cluster users)
-            secure: true
