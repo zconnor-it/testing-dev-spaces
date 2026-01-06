@@ -27,13 +27,3 @@ metadata:
         <text x="12" y="16" text-anchor="middle" font-size="10" fill="white" font-weight="bold">J</text>
       </svg>
 
-components:
-  # Minimal sidecar container required by editor definition
-  - name: editor-sidecar
-    container:
-      image: registry.access.redhat.com/ubi9/ubi:latest
-      memoryLimit: 64Mi
-      memoryRequest: 32Mi
-      args:
-        - sleep
-        - infinity
