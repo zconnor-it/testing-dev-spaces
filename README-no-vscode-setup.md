@@ -1,124 +1,126 @@
-# Disabling VS Code in OpenShift Dev Spaces
+# Jupyter Notebook in OpenShift Dev Spaces (Without VS Code)
 
-This repository provides a solution for creating OpenShift Dev Spaces workspaces that **do not launch VS Code** by deploying a custom editor definition.
+This repository provides a solution for creating OpenShift Dev Spaces workspaces that run **Jupyter Notebook instead of VS Code**.
 
 Based on the [Eclipse Che Editor Definitions Documentation](https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/).
 
 ## Overview
 
-OpenShift Dev Spaces uses VS Code as the default editor. To disable it, you must deploy a **custom editor definition** as a ConfigMap in the Dev Spaces namespace. This requires **cluster administrator access**.
+OpenShift Dev Spaces uses VS Code as the default editor. This solution deploys a **custom editor definition** that prevents VS Code from loading, allowing you to use Jupyter Notebook as the primary interface.
+
+## Requirements
+
+- **Cluster administrator access** to the `openshift-devspaces` namespace (for initial setup)
+- OpenShift CLI (`oc`) or `kubectl`
 
 ## Files in This Repository
 
 | File | Purpose |
 |------|---------|
-| `devfile.yaml` | Example devfile for testing workspaces |
-| `no-vscode-editor-definition.yaml` | Custom editor definition using Red Hat UBI (no VS Code) |
-| `deploy-no-vscode-editor.sh` | Automated deployment script for administrators |
+| `devfile.yaml` | Defines Jupyter container with auto-install and token authentication |
+| `no-vscode-editor-definition.yaml` | Custom editor definition that prevents VS Code |
+| `deploy-no-vscode-editor.sh` | Deployment script for administrators |
 | `README-no-vscode-setup.md` | This documentation |
 
-## Requirements
+## Initial Setup (Administrator)
 
-- **Cluster administrator access** to the `openshift-devspaces` namespace
-- OpenShift CLI (`oc`) or `kubectl`
+### Step 1: Clone the Repository
 
-## Deployment Steps
+```bash
+git clone https://github.com/zconnor-it/testing-dev-spaces.git
+cd testing-dev-spaces
+```
 
-### Step 1: Log into OpenShift
+### Step 2: Log into OpenShift
 
 ```bash
 oc login <your-openshift-api-url> --token=<your-token>
 ```
 
-### Step 2: Deploy the Editor Definition
+### Step 3: Deploy the Editor Definition
 
 ```bash
-# Clone this repository
-git clone https://github.com/zconnor-it/testing-dev-spaces.git
-cd testing-dev-spaces
-
-# Run the deployment script
 ./deploy-no-vscode-editor.sh
+```
 
-# Or specify a custom namespace
+Or specify a custom namespace:
+```bash
 ./deploy-no-vscode-editor.sh -n eclipse-che
 ```
 
-### Manual Deployment (Alternative)
-
-```bash
-NAMESPACE="openshift-devspaces"
-
-# Create the ConfigMap
-oc create configmap no-vscode-editor-definition \
-  --from-file=no-vscode-editor-definition.yaml \
-  -n $NAMESPACE
-
-# Add required labels (CRITICAL)
-oc label configmap no-vscode-editor-definition \
-  app.kubernetes.io/part-of=che.eclipse.org \
-  app.kubernetes.io/component=editor-definition \
-  -n $NAMESPACE
-```
-
-### Step 3: Verify Deployment
+### Step 4: Verify Deployment
 
 ```bash
 ./deploy-no-vscode-editor.sh --verify
 ```
 
-Or manually:
+## Creating a Jupyter Workspace (Users)
+
+After the administrator deploys the editor definition:
+
+1. Go to the **Dev Spaces dashboard**
+2. Click **"Create Workspace"**
+3. Select **"No VS Code (Use Devfile Container)"** as the editor
+4. Enter the Git repo URL: `https://github.com/zconnor-it/testing-dev-spaces`
+5. Click **"Create & Open"**
+
+The workspace will:
+- Install JupyterLab automatically
+- Generate a unique authentication token
+- Start JupyterLab on port 8888
+
+## Accessing Jupyter Notebook
+
+### Finding Your Authentication Token
+
+Each workspace session generates a unique token for security. To find your token:
+
+#### Option 1: From Dev Spaces Dashboard
+1. Click on your running workspace
+2. Go to the **"Logs"** tab
+3. Select the **"jupyter"** container
+4. Find the token block:
+   ```
+   ==============================================
+   JUPYTER AUTHENTICATION TOKEN
+   ==============================================
+   Your Jupyter token for this session:
+   
+     <your-64-character-token-here>
+   ==============================================
+   ```
+
+#### Option 2: Via Command Line
 ```bash
-oc get configmap no-vscode-editor-definition -n openshift-devspaces --show-labels
+# Get pod name
+oc get pods -n <your-namespace>
+
+# View token from logs
+oc logs <pod-name> -c jupyter -n <your-namespace> | grep -A 3 "Your Jupyter token"
+
+# Or read from file
+oc exec <pod-name> -c jupyter -n <your-namespace> -- cat /tmp/jupyter-token.txt
 ```
 
-## Using the No-VSCode Editor
+### Accessing the Jupyter URL
 
-After deployment, the editor will be available in the Dev Spaces dashboard.
+1. Get the workspace URL:
+   ```bash
+   oc get devworkspace -n <your-namespace> -o jsonpath='{.items[0].status.mainUrl}'
+   ```
 
-### Option A: Select in Dashboard
+2. Open the URL in your browser
 
-1. Go to Dev Spaces dashboard
-2. Create a new workspace
-3. Select **"No VS Code Editor (Red Hat UBI)"** from the editor dropdown
-4. Enter your Git repository URL
-5. Click Create & Open
+3. When prompted, enter your token
 
-### Option B: Use URL Parameter
+## Security
 
-```
-https://<devspaces-url>/#<git-repo-url>?che-editor=redhat-custom/no-vscode/1.0.0
-```
-
-### Option C: Reference in Devfile
-
-Add to your project's `devfile.yaml`:
-
-```yaml
-schemaVersion: 2.1.0
-attributes:
-  che-editor: redhat-custom/no-vscode/1.0.0
-metadata:
-  name: my-workspace
-components:
-  - name: runtime
-    container:
-      image: your-image:tag
-```
-
-### Option D: Set as Cluster Default
-
-Update the CheCluster custom resource:
-
-```yaml
-apiVersion: org.eclipse.che/v2
-kind: CheCluster
-metadata:
-  name: devspaces
-spec:
-  devEnvironments:
-    defaultEditor: redhat-custom/no-vscode/1.0.0
-```
+| Protection | Description |
+|------------|-------------|
+| **Token Authentication** | Random 64-character token required for access |
+| **Per-Session Tokens** | New token generated on each workspace restart |
+| **HTTPS** | All traffic encrypted via TLS |
+| **Workspace Isolation** | Each user has their own workspace namespace |
 
 ## Script Options
 
@@ -130,67 +132,84 @@ spec:
 ./deploy-no-vscode-editor.sh --help       # Show help
 ```
 
-## Verification
+## Customization
 
-### Check ConfigMap
+### Change Memory/CPU Limits
 
-```bash
-oc get configmap no-vscode-editor-definition \
-  -n openshift-devspaces --show-labels
+Edit `devfile.yaml`:
+```yaml
+memoryLimit: 8Gi
+memoryRequest: 2Gi
 ```
 
-### Check API
+### Use a Different Jupyter Image
 
-```bash
-curl "https://<devspaces-url>/dashboard/api/editors"
+Replace the image in `devfile.yaml`:
+```yaml
+image: your-registry/your-jupyter-image:tag
 ```
 
-### Check Specific Editor
+### Disable Token Authentication
 
+Edit the startup command in `devfile.yaml` to use empty token:
 ```bash
-curl "https://<devspaces-url>/dashboard/api/editors/devfile?che-editor=redhat-custom/no-vscode/1.0.0"
+jupyter lab --ServerApp.token='' --ServerApp.password=''
 ```
 
 ## Troubleshooting
 
-### Editor Not Appearing in Dashboard
+### Workspace Won't Start
 
-1. Verify ConfigMap exists with correct labels:
-   ```bash
-   oc get configmap no-vscode-editor-definition \
-     -n openshift-devspaces --show-labels
-   ```
-
-2. Required labels:
-   - `app.kubernetes.io/part-of=che.eclipse.org`
-   - `app.kubernetes.io/component=editor-definition`
-
-3. Clear browser cache and refresh the dashboard
-
-### Permission Denied
-
-You need cluster admin access to the Dev Spaces namespace:
+Check pod status:
 ```bash
-oc auth can-i create configmaps -n openshift-devspaces
+oc get pods -n <your-namespace>
+oc describe pod <pod-name> -n <your-namespace>
 ```
 
-### Workspace Fails to Start
+### Container CrashLoopBackOff
 
-Check DevWorkspace status:
+Check container logs:
 ```bash
-oc get devworkspace -n <user-namespace>
-oc describe devworkspace <workspace-name> -n <user-namespace>
+oc logs <pod-name> -c jupyter -n <your-namespace>
+```
+
+### Storage Error (0-size PVC)
+
+Ensure the CheCluster has storage configured:
+```bash
+oc get checluster -n openshift-devspaces -o yaml | grep -A 10 storage
+```
+
+If missing, patch it:
+```bash
+oc patch checluster devspaces -n openshift-devspaces --type=merge -p '
+{
+  "spec": {
+    "devEnvironments": {
+      "storage": {
+        "pvcStrategy": "per-workspace",
+        "perWorkspaceStrategyPvcConfig": {
+          "claimSize": "5Gi"
+        }
+      }
+    }
+  }
+}'
+```
+
+### Editor Not Appearing in Dashboard
+
+Verify ConfigMap exists with correct labels:
+```bash
+oc get configmap -n openshift-devspaces -l app.kubernetes.io/component=editor-definition
 ```
 
 ## Removal
 
+To remove the custom editor definition:
+
 ```bash
 ./deploy-no-vscode-editor.sh --delete
-```
-
-Or manually:
-```bash
-oc delete configmap no-vscode-editor-definition -n openshift-devspaces
 ```
 
 ## References
@@ -198,3 +217,4 @@ oc delete configmap no-vscode-editor-definition -n openshift-devspaces
 - [Eclipse Che - Configuring Editors Definitions](https://eclipse.dev/che/docs/stable/administration-guide/configuring-editors-definitions/)
 - [Red Hat OpenShift Dev Spaces Documentation](https://docs.redhat.com/documentation/en-us/red_hat_openshift_dev_spaces/)
 - [Devfile Schema Documentation](https://devfile.io/)
+- [JupyterLab Documentation](https://jupyterlab.readthedocs.io/)
